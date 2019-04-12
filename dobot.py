@@ -1,7 +1,6 @@
 import struct
 import threading
 import time
-
 import serial
 
 import message
@@ -45,12 +44,12 @@ class Dobot(threading.Thread):
             print('pydobot: %s open' % self.ser.name if is_open else 'failed to open serial port')
         self._set_ptp_coordinate_params(velocity=200.0, acceleration=200.0)
         self._set_ptp_common_params(velocity=200.0, acceleration=200.0)
-        self.start()
+        # self.start()
 
-    def run(self):
-        while self.on:
-            self._get_pose()
-            time.sleep(0.2)
+    # def run(self):
+    #     while self.on:
+    #         self._get_pose()
+    #         time.sleep(0.2)
 
     def close(self):
         self.on = False
@@ -83,7 +82,7 @@ class Dobot(threading.Thread):
             return msg
         return
 
-    def _get_pose(self):
+    def get_pose(self):
         msg = message.Message()
         msg.id = 10
         response = self._send_command(msg)
@@ -98,7 +97,7 @@ class Dobot(threading.Thread):
         if self.verbose:
             print("pydobot: x:%03.1f y:%03.1f z:%03.1f r:%03.1f j1:%03.1f j2:%03.1f j3:%03.1f j4:%03.1f" %
                   (self.x, self.y, self.z, self.r, self.j1, self.j2, self.j3, self.j4))
-        return response
+        return self.x, self.y, self.z, self.r, self.j1, self.j2, self.j3, self.j4
 
     def _set_cp_cmd(self, x, y, z):
         msg = message.Message()
@@ -180,7 +179,7 @@ class Dobot(threading.Thread):
         self.y = struct.unpack_from('f', response.params, 4)[0]
         self.z = struct.unpack_from('f', response.params, 8)[0]
         self.r = struct.unpack_from('f', response.params, 12)[0]
-        return response
+        return self.x, self.y, self.z, self.r
 
     def set_home(self, x, y, z, r):
         msg = message.Message()
@@ -202,3 +201,20 @@ class Dobot(threading.Thread):
         msg.params.extend(bytearray(struct.pack('B', status)))
         msg.params.extend(bytearray(struct.pack('e', speed)))
         return self._send_command(msg)
+
+    def set_cupper(self, status, issucked):
+        msg = message.Message()
+        msg.id = 62
+        msg.ctrl = 0x03
+        msg.params = bytearray([])
+        msg.params.extend(bytearray(struct.pack('B', status)))
+        msg.params.extend(bytearray(struct.pack('B', issucked)))
+        return self._send_command(msg)
+
+    def clear_alarm(self):
+        msg = message.Message()
+        msg.id = 21
+        msg.ctrl = 0x01
+        msg.params = bytearray([])
+        return self._send_command(msg)
+
