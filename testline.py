@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from time import time
 
 
 title_window = 'Linear Blend'
@@ -28,6 +29,7 @@ def auto_canny(image, sigma=0.33):
 
 
 while True:
+	start_time = time()
 	crop_img = cv2.imread("photos/red_4_b.png")
 	# blur = cv2.GaussianBlur(crop_img, (15, 15), 0) # loc nhieu
 	gray = cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY)
@@ -48,10 +50,10 @@ while True:
 		for line in lines:
 			x1, y1, x2, y2 = line[0]
 			cv2.line(output, (x1, y1), (x2, y2), (0, 255, 0), 1)
-
+	print("time eslaped:", time()-start_time)
 	cv2.imshow("asd", output)
 	cv2.imshow("canny", edged)
-	key = cv2.waitKey(100) & 0xff
+	key = cv2.waitKey(1) & 0xff
 
 	if key == ord('q'):
 		break

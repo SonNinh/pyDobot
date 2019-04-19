@@ -5,7 +5,7 @@ from random import randint
 from math import atan, pi, fabs, sqrt, tan
 
 
-rect_width = 33
+rect_width = 31
 delta_dir = 10*pi/180
 
 def auto_canny(image, sigma=0.33):
@@ -173,29 +173,29 @@ def retangle_detect(ls_of_lines):
 
 
 def main():
-
+    cap = cv2.VideoCapture(1)
+    cap.set(3, 320)
+    cap.set(4, 240)
+    cap.set(5, 30)
+    sleep(1)
     while(True):
-        crop_img = cv2.imread("photos/test1.png")
-        # print(crop_img.dtype)
+        frame = cap.read()[1]
+        crop_img = frame[:, 115:240]
+        # crop_img = cv2.imread("photos/test11.png")
         # blur = cv2.GaussianBlur(crop_img, (15, 15), 0) # loc nhieu
         start_time = time()
         gray = cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY)
 
         # blur = cv2.GaussianBlur(gray, (5, 5), 0)
         edged = auto_canny(gray)
-        # cv2.imshow("canny", edged)
+        cv2.imshow("canny", edged)
         # edged = cv2.Canny(gray, 20, 250)
-
+        # start_time = time()
         lines = cv2.HoughLinesP(edged, 1, np.pi/180, 18, 1, 7, 4)
-        
         color = [(0, 255, 0), (255, 0, 0), (0, 0, 255)]
-        print("num of lines:", len(lines))
+        
         if lines is not None:
-            output = np.zeros(crop_img.shape, dtype=crop_img.dtype)
-            for line in lines:
-                x1, y1, x2, y2 = line[0]
-                cv2.line(output, (x1, y1), (x2, y2), (0, 255, 0), 1)
-            cv2.imshow("lines", output)
+            print("num of lines:", len(lines))
             ls_of_rect, ls_of_cen_dir_len = retangle_detect(lines)
             print("num of rects:", len(ls_of_rect))
 
@@ -205,19 +205,8 @@ def main():
             
             for rect in ls_of_rect:
                 ls_of_couple = abc(lines, rect, ls_of_cen_dir_len)
-                # print(len(ls_of_couple[0]), len(ls_of_couple[1]))
                 for v in ls_of_couple[0]:
                     for h in ls_of_couple[1]:
-                        # output = np.zeros(crop_img.shape, dtype=crop_img.dtype)
-                        # print(v, h)
-                        '''for l in v:
-                            print(ls_of_cen_dir_len[l])
-                            x1, y1, x2, y2 = lines[l][0]
-                            cv2.line(output, (x1, y1), (x2, y2), color[0], 2)
-                        for l in h:
-                            print(ls_of_cen_dir_len[l])
-                            x1, y1, x2, y2 = lines[l][0]
-                            cv2.line(output, (x1, y1), (x2, y2), color[1], 2)'''
                         if is_rect(v, h, ls_of_cen_dir_len):
                             res.append([v, h])
                             vh = [v, h]
@@ -230,17 +219,9 @@ def main():
                                     break
                             if not added:
                                 ls_of_center_rect.append([center])
-                            # cv2.circle(output, center, 2, color[2], thickness=1)
-                            # for cr in cross:
-                            #     cv2.circle(output, (int(cr[0]),int(cr[1])), 2, color[2], thickness=1)
-                                
-                            # cv2.imshow("ouput", output)
-                            # cv2.imshow('origin', crop_img)
-                            # cv2.waitKey()
-                            # break
             print("num of res:", len(res))
             final = []
-            output = np.zeros(crop_img.shape, dtype=crop_img.dtype)
+            # output = np.zeros(crop_img.shape, dtype=crop_img.dtype)
             for c in ls_of_center_rect:
                 x_sum = 0
                 y_sum = 0
@@ -248,68 +229,16 @@ def main():
                     x_sum += each[0]
                     y_sum += each[1]
                 final.append((int(x_sum/len(c)), int(y_sum/len(c))))
-            # for f in final:
-            #     cv2.circle(crop_img, f, 2, color[2], thickness=1)
+            for f in final:
+                cv2.circle(crop_img, f, 2, color[0], thickness=1)
             print("num of final:", len(final))
             print("eslaped time:", time() - start_time)
-            # output = np.zeros(crop_img.shape, dtype=crop_img.dtype)
-            # x1, y1, x2, y2 = lines[37][0]
-            # cv2.line(output, (x1, y1), (x2, y2), color[1], 2)
-            # x1, y1, x2, y2 = lines[41][0]
-            # cv2.line(output, (x1, y1), (x2, y2), color[1], 2)
-            # x1, y1, x2, y2 = lines[2][0]
-            # cv2.line(output, (x1, y1), (x2, y2), color[1], 2)
-            # x1, y1, x2, y2 = lines[20][0]
-            # cv2.line(output, (x1, y1), (x2, y2), color[1], 2)
-            # vh = [[37, 41],[2, 20]]
-            # center, cross = get_center_rect(vh, ls_of_cen_dir_len)
-            # output = np.zeros((250, 150, 3), dtype=crop_img.dtype)
-            # print('asd')
-            # print(ls_of_rect[15][0])
-            # print(ls_of_rect[15][1])
-            # for re in ls_of_rect[15][0]:
-            #     x1, y1, x2, y2 = lines[re][0]
-            #     cv2.line(output, (x1, y1), (x2, y2), color[0], 2)
-            # for re in ls_of_rect[15][1]:
-            #     x1, y1, x2, y2 = lines[re][0]
-            #     cv2.line(output, (x1, y1), (x2, y2), color[1], 2)
 
-            # for rect in ls_of_rect:
-            #     output = np.zeros(crop_img.shape, dtype=crop_img.dtype)
-            #     for l in rect[0]:
-            #         x1, y1, x2, y2 = lines[l][0]
-            #         cv2.line(output, (x1, y1), (x2, y2), color[0], 2)
-            #     for l in rect[1]:
-            #         x1, y1, x2, y2 = lines[l][0]
-            #         cv2.line(output, (x1, y1), (x2, y2), color[1], 2)
-                
-            #     cv2.imshow("ouput", output)
-            #     cv2.imshow('origin', crop_img)
-            #     cv2.waitKey()
-            # ls_of_center_rect = []
-            # ls_of_cross = []
-            # for rect in res:
-            #     center, cross = get_center_rect(rect, ls_of_cen_dir_len)
-            #     ls_of_center_rect.append(center)
-            #     ls_of_cross.append(cross)
+        cv2.imshow('origin', crop_img)
+        if cv2.waitKey(1) & 0xFF == 27:
+            break
 
-            # print("num of res:", len(res))
-            # for r in range(len(res)):
-            #     output = np.zeros(crop_img.shape, dtype=crop_img.dtype)
-            #     for v in res[r][0]:
-            #         x1, y1, x2, y2 = lines[v][0]
-            #         cv2.line(output, (x1, y1), (x2, y2), color[0], 2)
-            #     for h in res[r][1]:
-            #         x1, y1, x2, y2 = lines[h][0]
-            #         cv2.line(output, (x1, y1), (x2, y2), color[1], 2)
-            #     cv2.circle(output, ls_of_center_rect[r], 2, color[2], thickness=1)
-            #     for cr in ls_of_cross[r]:
-            #         cv2.circle(output, (int(cr[0]),int(cr[1])), 2, color[2], thickness=1)
-            cv2.imshow("ouput", output)
-            cv2.imshow('origin', crop_img)
-            cv2.waitKey()
-
-        break
+       
         
 
 if __name__ == '__main__':
