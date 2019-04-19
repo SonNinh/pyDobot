@@ -1,5 +1,4 @@
 import cv2
-from time import sleep, time
 import numpy as np
 from random import randint
 from math import atan, pi, fabs, sqrt, tan
@@ -93,7 +92,16 @@ def get_center_rect(rect, ls_of_cen_dir_len):
     x = (ls_of_peaks[0][0] + ls_of_peaks[1][0] + ls_of_peaks[2][0] + ls_of_peaks[3][0])/4
     y = (ls_of_peaks[0][1] + ls_of_peaks[1][1] + ls_of_peaks[2][1] + ls_of_peaks[3][1])/4
     
-    return (int(x), int(y))
+    sum_direction = 0
+    for line_v in rect[0]:
+        sum_direction += (ls_of_cen_dir_len[line_v][1] + pi/2)
+    for line_h in rect[1]:
+        sum_direction += ls_of_cen_dir_len[line_h][1]
+    sum_direction /= 4
+    if sum_direction < 0:
+        sum_direction += pi/2
+    
+    return (int(x), int(y)), sum_direction
 
 
 def is_between_2lines(points, lines):
@@ -194,7 +202,7 @@ def detect_real_rect(ls_of_cen_dir_len, clusters_of_paral_vert_lines):
             format: [[[h1, h2, ...], [v1, v2, ...]], ...]
     @return:
         ls_of_real_rects: a list contains center of real rects
-            format: [(x0, y0), (x1, y1), ...]
+            format: [[(x0, y0), dir0], [(x1, y1), dir1], ...]
     '''
     ls_of_center_rects = []
     ls_of_real_rects = []
@@ -208,26 +216,28 @@ def detect_real_rect(ls_of_cen_dir_len, clusters_of_paral_vert_lines):
                     # check if v and h are parts of a real rect
                     vh = [v, h]
                     # compute 
-                    center = get_center_rect(vh, ls_of_cen_dir_len)
+                    center, direction = get_center_rect(vh, ls_of_cen_dir_len)
 
                     # cluster duplicated rects into groups
                     added = False
                     for i in ls_of_center_rects:
-                        if get_distance_p2p(center, i[0]) < rect_width*0.5:
-                            i.append(center)
+                        if get_distance_p2p(center, i[0][0]) < rect_width*0.5:
+                            i.append((center, direction))
                             added = True
                             break
                     if not added:
-                        ls_of_center_rects.append([center])
+                        ls_of_center_rects.append([(center, direction)])
     
     # compute average center of duplicated rect group
     for c in ls_of_center_rects:
         x_sum = 0
         y_sum = 0
+        dir_sum = 0
         for each in c:
-            x_sum += each[0]
-            y_sum += each[1]
-        ls_of_real_rects.append((int(x_sum/len(c)), int(y_sum/len(c))))
+            x_sum += each[0][0]
+            y_sum += each[0][1]
+            dir_sum += each[1]
+        ls_of_real_rects.append([(int(x_sum/len(c)), int(y_sum/len(c))), dir_sum/len(c)/pi*180])
     
     return ls_of_real_rects
 
@@ -329,40 +339,29 @@ def auto_canny(image, sigma=0.33):
 	return edged
 
 
-def main():
-    cap = cv2.VideoCapture(1)
-    cap.set(3, 320)
-    cap.set(4, 240)
-    cap.set(5, 30)
-    sleep(1)
-    while(True):
-        frame = cap.read()[1]
-        crop_img = frame[:, 115:240]
-        # crop_img = cv2.imread("photos/test11.png")
-        # blur = cv2.GaussianBlur(crop_img, (15, 15), 0) # loc nhieu
-        start_time = time()
-        gray = cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY)
-        # blur = cv2.GaussianBlur(gray, (5, 5), 0)
-        edged = auto_canny(gray)
-        cv2.imshow("canny", edged)
-        lines = cv2.HoughLinesP(edged, 1, np.pi/180, 18, 1, 7, 4)
-        color = [(255, 0, 255), (255, 0, 0), (0, 0, 255)]
+def detect_rects(img):
+    '''
+    @return:
+        ls_of_real_rects: a list contains center and directions of real rects
+            format: [[(x0, y0), dir0], [(x1, y1), dir1], ...]
+    '''
+    # img = cv2.imread("photos/test11.png")
+    # blur = cv2.GaussianBlur(img, (15, 15), 0) # loc nhieu
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    edged = auto_canny(gray)
+    cv2.imshow("canny", edged)
+    lines = cv2.HoughLinesP(edged, 1, np.pi/180, 18, 1, 7, 4)
+    
+    ls_of_real_rects = []
+    if lines is not None:
+        # print("num of lines:", len(lines))
+        clusters_of_paral_vert_lines, ls_of_cen_dir_len = find_clusters_of_paral_vert_lines(lines)
+        # print("num of rects:", len(clusters_of_paral_vert_lines))
+        ls_of_real_rects = detect_real_rect(ls_of_cen_dir_len, clusters_of_paral_vert_lines)
         
-        if lines is not None:
-            print("num of lines:", len(lines))
-            clusters_of_paral_vert_lines, ls_of_cen_dir_len = find_clusters_of_paral_vert_lines(lines)
-            print("num of rects:", len(clusters_of_paral_vert_lines))
-
-            ls_of_real_rects = detect_real_rect(ls_of_cen_dir_len, clusters_of_paral_vert_lines)
-            for f in ls_of_real_rects:
-                cv2.circle(crop_img, f, 2, color[0], thickness=1)
-            print("num of detected rect:", len(ls_of_real_rects))
-            print("eslaped time:", time() - start_time) 
-
-        cv2.imshow('origin', crop_img)
-        if cv2.waitKey(1) & 0xFF == 27:
-            break
+    return ls_of_real_rects
         
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     detect_rects()
