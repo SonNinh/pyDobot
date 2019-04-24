@@ -44,7 +44,7 @@ class Dobot(threading.Thread):
             print('pydobot: %s open' % self.ser.name if is_open else 'failed to open serial port')
         self._set_ptp_coordinate_params(velocity=200.0, acceleration=200.0)
         self._set_ptp_common_params(velocity=200.0, acceleration=200.0)
-        # self.start()
+        self.start()
 
     # def run(self):
     #     while self.on:
