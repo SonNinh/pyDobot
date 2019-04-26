@@ -1,0 +1,4 @@
+max_z = 33
+min_x = 157
+max_x = 257
+center_conveyor = [189, 0, 12]

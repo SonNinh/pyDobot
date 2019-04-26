@@ -5,9 +5,9 @@ import sys
 
 def main():
     cap = cv2.VideoCapture(int(sys.argv[1]))
-    cap.set(3, 320)
-    cap.set(4, 240)
-    cap.set(5, 30)
+    cap.set(3, 160)
+    cap.set(4, 120)
+    # cap.set(5, 30)
     sleep(1)
     while(True):
         frame = cap.read()[1]
