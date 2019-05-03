@@ -6,7 +6,7 @@ import DobotDllType as dType
 
 
 ref_new = 10
-d_robot_cam = 315
+d_robot_cam = 331.5
 mm_per_sec = 50
 command = None
 end_thread =False
@@ -35,12 +35,24 @@ def is_new_obj(rect_center, ls_obj):
 
 
 def get_real_pos(img_pos, img_shape, delta_s):
-    return [(img_pos[0]-img_shape[1]/2)*25/30, (img_pos[1]-img_shape[0]/2)*25/30 + delta_s]
+    return [(img_pos[0]-img_shape[1]/2)*25/30, (img_pos[1]-img_shape[0]/2)*25/31 + delta_s]
 
 
 def convert_base(ls_of_rects, img_shape, delta_s):
     for rect in ls_of_rects:
         rect[0] = get_real_pos(rect[0], img_shape, delta_s)
+
+
+def get_color_center():
+    color_ls = ['red', 'green', 'blue', 'yellow']
+    color_center = []
+    for color in color_ls:
+        img = cv2.imread('photos/'+color+'.png')
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        p = hsv.mean(axis=0).mean(axis=0).astype(int)
+        color_center.append(list(p))
+
+    return color_center
 
 
 def main(threadname):
@@ -53,14 +65,17 @@ def main(threadname):
     last_time = 0
     timef2f = 0
 
+    color_center = get_color_center()
+    
     while True:
         
         start_time = time()
 
         frame = cap.read()[1]
         img = frame[frame.shape[0]//3:frame.shape[0]//3*2, 98:-98]
-        ls_of_rects = detect_rects(img)
-
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        ls_of_rects = detect_rects(img, color_center, hsv)
+        
         # calculate time spent by rect_regconition
         # print("num of detected rect:", len(ls_of_rects))
         # print("eslaped time:", time() - start_time)
@@ -68,8 +83,9 @@ def main(threadname):
         # show rect_regconition results
         color = [(255, 0, 255), (255, 0, 0), (0, 0, 255)]
         for rect in ls_of_rects:
+            
             cv2.circle(img, rect[0], 2, color[0], thickness=1)
-            cv2.putText(img,str(int(rect[1])), rect[0], cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0,255,0),1,cv2.LINE_AA)
+            cv2.putText(img,str(int(rect[2])), rect[0], cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0,255,0),1,cv2.LINE_AA)
         cv2.circle(img, (img.shape[1]//2, img.shape[0]//2), 2, color[2], thickness=1)
         cv2.imshow('origin', img)
 
@@ -114,19 +130,19 @@ def main(threadname):
 def pick_up(api, location, orientation, cur_pos_wh):
     warehouse_base = [-88, 198, -38]
 
-    x = location[0] + 189
+    x = location[0] + 214
     y = d_robot_cam - location[1]
     z = 12
     dType.SetPTPCmd(api, dType.PTPMode.PTPJUMPXYZMode,
-                    x, y, z, orientation, isQueued=1)
+                    x, y, z, 0, isQueued=1)
 
     dType.SetEndEffectorSuctionCup(api, 1,  1, isQueued=1)
 
     x = cur_pos_wh[0]*35 + warehouse_base[0]
     y = cur_pos_wh[1]*35 + warehouse_base[1]
-    z = cur_pos_wh[2]*27 + warehouse_base[2]
+    z = cur_pos_wh[2]*26 + warehouse_base[2]
     dType.SetPTPCmd(api, dType.PTPMode.PTPJUMPXYZMode,
-                    x, y, z, 0, isQueued=1)[0]
+                    x, y, z, orientation, isQueued=1)[0]
     
     lastIndex = dType.SetEndEffectorSuctionCup(api, 1,  0, isQueued=1)[0]
     
@@ -172,7 +188,7 @@ def arm(threadname):
     # dType.SetHOMEParams(api, 250, 0, 50, 0, isQueued=1)
     dType.SetPTPCoordinateParams(api, 150, 200, 200, 200, isQueued=1)
     dType.SetPTPCommonParams(api, 100, 100, isQueued=1)
-    dType.SetPTPJumpParams(api, 50, 150, isQueued=1)
+    dType.SetPTPJumpParams(api, 30, 150, isQueued=1)
 
     global command
     global mm_per_sec
@@ -196,7 +212,7 @@ def arm(threadname):
                 mm_per_sec = 50
                 ls_obj.pop(0)
                 print(len(ls_obj)) 
-        if end_thread or cur_pos_wh[2] == 3:
+        if end_thread or cur_pos_wh[2] == 4:
             break
     print("end tread 9hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh")
     dType.DisconnectDobot(api)

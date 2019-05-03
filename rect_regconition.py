@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 from random import randint
 from math import atan, pi, fabs, sqrt, tan
+from matplotlib import pyplot
+from mpl_toolkits.mplot3d import Axes3D
 
 
 rect_width = 31
@@ -98,8 +100,8 @@ def get_center_rect(rect, ls_of_cen_dir_len):
     for line_h in rect[1]:
         sum_direction += ls_of_cen_dir_len[line_h][1]
     sum_direction /= 4
-    if sum_direction < 0:
-        sum_direction += pi/2
+    # if sum_direction < 0:
+    #     sum_direction += pi/2
     
     return (int(x), int(y)), sum_direction
 
@@ -164,6 +166,37 @@ def is_rect(v1, v2, h1, h2):
     else:
         return True
 
+
+def get_dist_3d_p2p(color, center):
+    return sqrt((color[0]-center[0])**2 + (color[1]-center[1])**2 + (color[2]-center[2])**2)
+
+
+def get_nearest_color(color_mean, color_center):
+    nearest_dist = get_dist_3d_p2p(color_mean, color_center[3])
+    nearest_color = 3
+    for idx, center in enumerate(color_center[:3]):
+        dist = get_dist_3d_p2p(color_mean, center)
+        if dist < nearest_dist:
+            nearest_dist = dist
+            nearest_color = idx
+    
+    return nearest_color
+
+
+def detect_color(ls_of_rects, color_center, hsv_img):
+    '''
+    '''
+    # fig = pyplot.figure()
+    # ax = Axes3D(fig)
+    # color_ls = ['red', 'green', 'blue', 'yellow']
+    for rect in ls_of_rects:
+        rect_img = hsv_img[rect[0][0]-8:rect[0][0]+8, rect[0][1]-8:rect[0][1]+8]
+        color_mean = rect_img.mean(axis=0).mean(axis=0).astype(int)
+        color_id = get_nearest_color(color_mean, color_center)
+        # ax.scatter(color_mean[0], color_mean[1], color_mean[2], c=color_ls[color_id])
+        rect.append(color_id)
+
+    # pyplot.show(1)
 
 def detect_pair_closed_parallel_lines(cluster, ls_of_cen_dir_len):
     '''
@@ -339,7 +372,7 @@ def auto_canny(image, sigma=0.33):
 	return edged
 
 
-def detect_rects(img):
+def detect_rects(img, color_center, hsv):
     '''
     @return:
         ls_of_real_rects: a list contains center and directions of real rects
@@ -359,7 +392,8 @@ def detect_rects(img):
         clusters_of_paral_vert_lines, ls_of_cen_dir_len = find_clusters_of_paral_vert_lines(lines)
         # print("num of rects:", len(clusters_of_paral_vert_lines))
         ls_of_real_rects = detect_real_rect(ls_of_cen_dir_len, clusters_of_paral_vert_lines)
-        
+        detect_color(ls_of_real_rects, color_center, hsv)
+
     return ls_of_real_rects
         
 
