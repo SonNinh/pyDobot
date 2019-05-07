@@ -172,10 +172,12 @@ def get_dist_3d_p2p(color, center):
 
 
 def get_nearest_color(color_mean, color_center):
-    nearest_dist = get_dist_3d_p2p(color_mean, color_center[3])
-    nearest_color = 3
-    for idx, center in enumerate(color_center[:3]):
+    nearest_dist = get_dist_3d_p2p(color_mean, color_center[0])
+    nearest_color = 0
+    # print(nearest_dist)
+    for idx, center in enumerate(color_center[1:], 1):
         dist = get_dist_3d_p2p(color_mean, center)
+        # print(dist)
         if dist < nearest_dist:
             nearest_dist = dist
             nearest_color = idx
@@ -188,15 +190,18 @@ def detect_color(ls_of_rects, color_center, hsv_img):
     '''
     # fig = pyplot.figure()
     # ax = Axes3D(fig)
-    # color_ls = ['red', 'green', 'blue', 'yellow']
+    color_ls = ['red', 'green', 'blue', 'yellow']
     for rect in ls_of_rects:
-        rect_img = hsv_img[rect[0][0]-8:rect[0][0]+8, rect[0][1]-8:rect[0][1]+8]
+        rect_img = hsv_img[rect[0][1]-10:rect[0][1]+10, rect[0][0]-10:rect[0][0]+10]
+        cv2.imshow("rect", rect_img)
         color_mean = rect_img.mean(axis=0).mean(axis=0).astype(int)
         color_id = get_nearest_color(color_mean, color_center)
         # ax.scatter(color_mean[0], color_mean[1], color_mean[2], c=color_ls[color_id])
+        # print(color_ls[color_id])
         rect.append(color_id)
 
     # pyplot.show(1)
+
 
 def detect_pair_closed_parallel_lines(cluster, ls_of_cen_dir_len):
     '''
@@ -392,7 +397,7 @@ def detect_rects(img, color_center, hsv):
         clusters_of_paral_vert_lines, ls_of_cen_dir_len = find_clusters_of_paral_vert_lines(lines)
         # print("num of rects:", len(clusters_of_paral_vert_lines))
         ls_of_real_rects = detect_real_rect(ls_of_cen_dir_len, clusters_of_paral_vert_lines)
-        detect_color(ls_of_real_rects, color_center, hsv)
+        detect_color(ls_of_real_rects, color_center, img)
 
     return ls_of_real_rects
         

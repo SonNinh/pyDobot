@@ -6,7 +6,7 @@ import DobotDllType as dType
 
 
 ref_new = 10
-d_robot_cam = 331.5
+d_robot_cam = 329
 mm_per_sec = 50
 command = None
 end_thread =False
@@ -14,9 +14,10 @@ ls_obj = []
 
 
 class Rectangle(object):
-    def __init__(self, location, orientation):
+    def __init__(self, location, orientation, color):
         self.location = location
         self.orientation = orientation
+        self.color = color
 
 
 def is_new_obj(rect_center, ls_obj):
@@ -48,8 +49,8 @@ def get_color_center():
     color_center = []
     for color in color_ls:
         img = cv2.imread('photos/'+color+'.png')
-        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        p = hsv.mean(axis=0).mean(axis=0).astype(int)
+        # hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        p = img.mean(axis=0).mean(axis=0).astype(int)
         color_center.append(list(p))
 
     return color_center
@@ -109,13 +110,13 @@ def main(threadname):
                 for i in range(-1, end_idx, -1):
                     if rect[0][1] <= ls_obj[i].location[1]:
                         if i == -1:
-                            ls_obj.append(Rectangle(rect[0], rect[1]))
+                            ls_obj.append(Rectangle(rect[0], rect[1], rect[2]))
                         else:
-                            ls_obj.insert(i, Rectangle(rect[0], rect[1]))
+                            ls_obj.insert(i, Rectangle(rect[0], rect[1], rect[2]))
                         inserted_flag = True
                         break
                 if not inserted_flag:
-                    ls_obj.insert(end_idx+1, Rectangle(rect[0], rect[1]))
+                    ls_obj.insert(end_idx+1, Rectangle(rect[0], rect[1], rect[2]))
         
         # print(len(ls_obj)) 
 
@@ -127,10 +128,10 @@ def main(threadname):
     cv2.destroyAllWindows()
 
 
-def pick_up(api, location, orientation, cur_pos_wh):
-    warehouse_base = [-88, 198, -38]
+def pick_up(api, location, orientation, color, cur_pos_wh, size_wh):
+    warehouse_base = [-88, 198, -46]
 
-    x = location[0] + 214
+    x = location[0] + 215
     y = d_robot_cam - location[1]
     z = 12
     dType.SetPTPCmd(api, dType.PTPMode.PTPJUMPXYZMode,
@@ -138,24 +139,26 @@ def pick_up(api, location, orientation, cur_pos_wh):
 
     dType.SetEndEffectorSuctionCup(api, 1,  1, isQueued=1)
 
-    x = cur_pos_wh[0]*35 + warehouse_base[0]
-    y = cur_pos_wh[1]*35 + warehouse_base[1]
-    z = cur_pos_wh[2]*26 + warehouse_base[2]
+    x = cur_pos_wh[color][0]*35 + warehouse_base[0] + 40*color
+    y = cur_pos_wh[color][1]*35 + warehouse_base[1]
+    z = cur_pos_wh[color][2]*26 + warehouse_base[2]
     dType.SetPTPCmd(api, dType.PTPMode.PTPJUMPXYZMode,
                     x, y, z, orientation, isQueued=1)[0]
     
     lastIndex = dType.SetEndEffectorSuctionCup(api, 1,  0, isQueued=1)[0]
     
 
-    if cur_pos_wh[0] == 1:
-        cur_pos_wh[0] = 0
-        if cur_pos_wh[1] == 1:
-            cur_pos_wh[1] = 0
-            cur_pos_wh[2] += 1
+    if cur_pos_wh[color][0] == size_wh[0]-1:
+        cur_pos_wh[color][0] = 0
+        if cur_pos_wh[color][1] == size_wh[1]-1:
+            cur_pos_wh[color][1] = 0
+            if cur_pos_wh[color][2] < size_wh[2]-1:
+                cur_pos_wh[color][2] += 1
         else:
-            cur_pos_wh[1] += 1
+            cur_pos_wh[color][1] += 1
     else:
-        cur_pos_wh[0] += 1
+        cur_pos_wh[color][0] += 1
+
 
     cur_cmd = dType.GetQueuedCmdCurrentIndex(api)[0]
     while lastIndex > cur_cmd:
@@ -167,8 +170,11 @@ def pick_up(api, location, orientation, cur_pos_wh):
 
 
 def arm(threadname):
-    size_wh = [3, 3]
-    cur_pos_wh = [0, 0, 0]
+    size_wh = [1, 3, 4]
+    cur_pos_wh = [[0, 0, 0],
+                  [0, 0, 0],
+                  [0, 0, 0],
+                  [0, 0, 0]] 
     # size_wh = [[0, 0, 0],
     #            [0, 0, 0],
     #            [0, 0, 0]]
@@ -205,11 +211,14 @@ def arm(threadname):
             # print("ab")
             if ls_obj[0].location[1] >= d_robot_cam:
                 # print("abc")
-                mm_per_sec = 0
-                dType.SetEMotor(api, 0, 1, int(0), isQueued=1)
-                pick_up(api, ls_obj[0].location, ls_obj[0].orientation, cur_pos_wh)
-                dType.SetEMotor(api, 0, 1, int(pulse_per_sec), isQueued=1)
-                mm_per_sec = 50
+                print(cur_pos_wh)
+                if cur_pos_wh[ls_obj[0].color][2] < 4:
+                    mm_per_sec = 0
+                    dType.SetEMotor(api, 0, 1, int(0), isQueued=1)
+                    
+                    pick_up(api, ls_obj[0].location, ls_obj[0].orientation, ls_obj[0].color, cur_pos_wh, size_wh)
+                    dType.SetEMotor(api, 0, 1, int(pulse_per_sec), isQueued=1)
+                    mm_per_sec = 50
                 ls_obj.pop(0)
                 print(len(ls_obj)) 
         if end_thread or cur_pos_wh[2] == 4:
