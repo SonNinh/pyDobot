@@ -7,9 +7,9 @@ import DobotDllType as dType
 # khoang cach gioi han nho nhat giua 2 vat the
 ref_new = 10
 # khoang cach tu tam camera den truc x cua robot
-d_robot_cam = 329
+d_robot_cam = 332
 # toc do bang tai (mm/s)
-mm_per_sec = 50
+mm_per_sec = 40
 # flag dieu khien ket thuc thread 'arm'
 end_thread =False
 # list cac vat the dang duoc theo doi
@@ -66,7 +66,7 @@ def get_color_center():
     '''
     tinh sample color cua 4 mau
     '''
-    color_ls = ['red', 'green', 'blue', 'yellow']
+    color_ls = ['red', 'green', 'blue', 'yellow', 'black']
     color_center = []
     for color in color_ls:
         img = cv2.imread('photos/'+color+'.png')
@@ -91,7 +91,7 @@ def main(threadname):
     last_time = 0
     timef2f = 0
 
-    # tinh sample color cua 4 mau
+    # tinh sample color cua 5 mau
     color_center = get_color_center()
     
     while True:
@@ -122,6 +122,7 @@ def main(threadname):
 
         # convert coordinate base from image base to robot base 
         delta_s = (time()-start_time) * mm_per_sec
+        # print('time1:', time()-start_time)
         convert_base(ls_of_rects, img.shape, delta_s)
 
         # khai bao ls_obj la global de co the sua doi du lieu
@@ -129,6 +130,8 @@ def main(threadname):
 
         # can chinh lai toa do cac vat the
         delta_s = (time()-last_time) * mm_per_sec
+        # print('delta:', delta_s)
+
         last_time = time()
         for obj in ls_obj:
             obj.location[1] += delta_s
@@ -162,12 +165,13 @@ def main(threadname):
 
 def pick_up(api, location, orientation, color, cur_pos_wh, size_wh):
     # vi tri goc cua kho
-    warehouse_base = [-88, 198, -46]
+    warehouse_base = [-88, 198, -42]
 
     # dieu khien arm den vi tri x, y, z
-    x = location[0] + 215
+    x = location[0] + 217
     y = d_robot_cam - location[1]
     z = 12
+    print(x,y,z)
     dType.SetPTPCmd(api, dType.PTPMode.PTPJUMPXYZMode,
                     x, y, z, 0, isQueued=1)
 
@@ -179,18 +183,18 @@ def pick_up(api, location, orientation, color, cur_pos_wh, size_wh):
     z = cur_pos_wh[color][2]*26 + warehouse_base[2]
     dType.SetPTPCmd(api, dType.PTPMode.PTPJUMPXYZMode,
                     x, y, z, orientation, isQueued=1)[0]
-    
-    # luu chi so cua lenh cuoi cung
-    lastIndex = dType.SetEndEffectorSuctionCup(api, 1,  0, isQueued=1)[0]
-    
+    dType.SetEndEffectorSuctionCup(api, 1,  0, isQueued=1)
 
+    # luu chi so cua lenh cuoi cung
+    lastIndex = dType.SetWAITCmd(api, 0.2, isQueued=1)[0]
+    
     # cap nhat tri trong trong kho chua
     if cur_pos_wh[color][0] == size_wh[0]-1:
         cur_pos_wh[color][0] = 0
         if cur_pos_wh[color][1] == size_wh[1]-1:
             cur_pos_wh[color][1] = 0
-            if cur_pos_wh[color][2] < size_wh[2]-1:
-                cur_pos_wh[color][2] += 1
+            # if cur_pos_wh[color][2] < size_wh[2]-1:
+            cur_pos_wh[color][2] += 1
         else:
             cur_pos_wh[color][1] += 1
     else:
@@ -230,18 +234,29 @@ def arm(threadname):
     state = dType.ConnectDobot(api, "", 115200)[0]
     print("Connect status:",CON_STR[state])
 
-    # dType.SetHOMEParams(api, 250, 0, 50, 0, isQueued=1)
+    # dType.SetHOMEParams(api, 200, 0, 50, 0, isQueued=1)
     dType.SetPTPCoordinateParams(api, 150, 200, 200, 200, isQueued=1)
     dType.SetPTPCommonParams(api, 100, 100, isQueued=1)
-    dType.SetPTPJumpParams(api, 30, 150, isQueued=1)
+    dType.SetPTPJumpParams(api, 60, 150, isQueued=1)
+    dType.SetPTPCmd(api, dType.PTPMode.PTPJUMPXYZMode,
+                    200, 0, 50, 0, isQueued=1)
+    lastIndex = dType.SetHOMECmd(api, temp = 0, isQueued = 1)[0]
+
+    cur_cmd = dType.GetQueuedCmdCurrentIndex(api)[0]
+    while lastIndex > cur_cmd:
+        dType.dSleep(10)
+        cur_cmd = dType.GetQueuedCmdCurrentIndex(api)[0]
 
     global mm_per_sec
 
     dType.SetQueuedCmdClear(api)
     dType.SetQueuedCmdStartExec(api)
 
+    f = open('step', 'r')
+    STEP_PER_CIRCLE = float(f.read().strip('\n'))
+    f.close()
     # so buoc de truc quay du 1 vong
-    STEP_PER_CIRCLE = 17400 #16625 
+    # STEP_PER_CIRCLE = 17400 #16625 
     # chu vi truc quay bang chuyen
     MM_PER_CIRCLE = 3.1415926535898 * 36.0
     # so buoc trong 1 giay
@@ -249,30 +264,49 @@ def arm(threadname):
     # dieu khien stepper
     dType.SetEMotor(api, 0, 1, int(pulse_per_sec), isQueued=1)
 
+    
     while state == dType.DobotConnect.DobotConnect_NoError:
-        # print("a")
+        # print('number:', len(ls_obj))
         if ls_obj:
             # print("ab")
-            if ls_obj[0].location[1] >= d_robot_cam:
-                print(cur_pos_wh)
-                # neu kho hang cua mau dang xet chua day
-                if cur_pos_wh[ls_obj[0].color][2] < 4:
-                    # dung bang chuyen
-                    dType.SetEMotor(api, 0, 1, int(0), isQueued=1)
-                    
-                    # gap vat the tu bang chuyen vao kho
-                    pick_up(api, ls_obj[0].location, ls_obj[0].orientation, ls_obj[0].color, cur_pos_wh, size_wh)
+            if ls_obj[0].location[1] >= d_robot_cam-20:
+                while True:
+                    try: 
+                        if ls_obj[0].location[1] >= d_robot_cam-100:
+                            print(cur_pos_wh)
+                            # neu kho hang cua mau dang xet chua day
+                            if cur_pos_wh[ls_obj[0].color][2] < size_wh[2]:
+                                # dung bang chuyen
+                                dType.SetEMotor(api, 0, 1, int(0), isQueued=1)
+                                mm_per_sec = 0
+                                # gap vat the tu bang chuyen vao kho
+                                pick_up(api, ls_obj[0].location, ls_obj[0].orientation, ls_obj[0].color, cur_pos_wh, size_wh)
 
-                    # bang chuyen tiep tuc chay
-                    dType.SetEMotor(api, 0, 1, int(pulse_per_sec), isQueued=1)
-                    
-                # xoa vat the vua gap
-                ls_obj.pop(0)
+                            # xoa vat the vua gap
+                            ls_obj.pop(0)
+                        else:
+                            break
+                    except Exception:
+                        break
+                
+                # bang chuyen tiep tuc chay
+        f = open('step', 'r')
+        STEP_PER_CIRCLE = float(f.read().strip('\n'))
+        f.close()
+
+        # # chu vi truc quay bang chuyen
+        MM_PER_CIRCLE = 3.1415926535898 * 36.0
+        # # so buoc trong 1 giay
+        mm_per_sec = 40
+        pulse_per_sec = mm_per_sec * STEP_PER_CIRCLE / MM_PER_CIRCLE
+        dType.SetEMotor(api, 0, 1, int(pulse_per_sec), isQueued=1)
+                
 
         if end_thread:
+            dType.SetEMotor(api, 0, 1, 0, isQueued=1)
+            print('End process')
+            dType.DisconnectDobot(api)
             break
-    print('End process')
-    dType.DisconnectDobot(api)
 
 
 if __name__ == '__main__':

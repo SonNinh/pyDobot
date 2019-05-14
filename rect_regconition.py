@@ -190,14 +190,15 @@ def detect_color(ls_of_rects, color_center, hsv_img):
     '''
     # fig = pyplot.figure()
     # ax = Axes3D(fig)
-    color_ls = ['red', 'green', 'blue', 'yellow']
-    for rect in ls_of_rects:
+    # color_ls = ['red', 'green', 'blue', 'yellow', 'black']
+    for idx, rect in enumerate(ls_of_rects):
         rect_img = hsv_img[rect[0][1]-10:rect[0][1]+10, rect[0][0]-10:rect[0][0]+10]
         cv2.imshow("rect", rect_img)
         color_mean = rect_img.mean(axis=0).mean(axis=0).astype(int)
         color_id = get_nearest_color(color_mean, color_center)
         # ax.scatter(color_mean[0], color_mean[1], color_mean[2], c=color_ls[color_id])
         # print(color_ls[color_id])
+        
         rect.append(color_id)
 
     # pyplot.show(1)
@@ -377,7 +378,7 @@ def auto_canny(image, sigma=0.33):
 	return edged
 
 
-def detect_rects(img, color_center, hsv):
+def detect_rects(img, color_center):
     '''
     @return:
         ls_of_real_rects: a list contains center and directions of real rects
@@ -386,8 +387,9 @@ def detect_rects(img, color_center, hsv):
     # img = cv2.imread("photos/test11.png")
     # blur = cv2.GaussianBlur(img, (15, 15), 0) # loc nhieu
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    edged = auto_canny(gray)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    edged = auto_canny(blur)
+    # edged = cv2.Canny(blur, 100, 200)
     cv2.imshow("canny", edged)
     lines = cv2.HoughLinesP(edged, 1, np.pi/180, 18, 1, 7, 4)
     
@@ -398,6 +400,10 @@ def detect_rects(img, color_center, hsv):
         # print("num of rects:", len(clusters_of_paral_vert_lines))
         ls_of_real_rects = detect_real_rect(ls_of_cen_dir_len, clusters_of_paral_vert_lines)
         detect_color(ls_of_real_rects, color_center, img)
+        
+        for idx, rect in enumerate(ls_of_real_rects):
+            if rect[-1] == 4:
+                ls_of_real_rects.pop(idx)
 
     return ls_of_real_rects
         
