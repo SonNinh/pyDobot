@@ -126,10 +126,10 @@ img = cv2.imread("photos/yellow.png")
 p = img.mean(axis=0).mean(axis=0).astype(int)
 ax.scatter(p[0], p[1], p[2], c='yellow')
 
-# img = cv2.imread("photos/black.png")
-# # img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-# p = img.mean(axis=0).mean(axis=0).astype(int)
-# ax.scatter(p[0], p[1], p[2], c='black')
+img = cv2.imread("photos/black.png")
+# img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+p = img.mean(axis=0).mean(axis=0).astype(int)
+ax.scatter(p[0], p[1], p[2], c='black')
 
 # # print(p)
 

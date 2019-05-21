@@ -11,7 +11,7 @@ delta_dir = 10*pi/180
 
 
 def get_distance_p2l(point, line):
-    '''
+    '''/
     calculate distance from point to line
     @param:
         point: coordination of the point
@@ -94,14 +94,9 @@ def get_center_rect(rect, ls_of_cen_dir_len):
     x = (ls_of_peaks[0][0] + ls_of_peaks[1][0] + ls_of_peaks[2][0] + ls_of_peaks[3][0])/4
     y = (ls_of_peaks[0][1] + ls_of_peaks[1][1] + ls_of_peaks[2][1] + ls_of_peaks[3][1])/4
     
-    sum_direction = 0
-    for line_v in rect[0]:
-        sum_direction += (ls_of_cen_dir_len[line_v][1] + pi/2)
-    for line_h in rect[1]:
-        sum_direction += ls_of_cen_dir_len[line_h][1]
-    sum_direction /= 4
-    # if sum_direction < 0:
-    #     sum_direction += pi/2
+    sum_direction = ls_of_cen_dir_len[rect[1][0]][1] + ls_of_cen_dir_len[rect[0][0]][1] + pi/2
+    sum_direction /= 2
+
     
     return (int(x), int(y)), sum_direction
 
@@ -174,10 +169,8 @@ def get_dist_3d_p2p(color, center):
 def get_nearest_color(color_mean, color_center):
     nearest_dist = get_dist_3d_p2p(color_mean, color_center[0])
     nearest_color = 0
-    # print(nearest_dist)
     for idx, center in enumerate(color_center[1:], 1):
         dist = get_dist_3d_p2p(color_mean, center)
-        # print(dist)
         if dist < nearest_dist:
             nearest_dist = dist
             nearest_color = idx
@@ -185,23 +178,17 @@ def get_nearest_color(color_mean, color_center):
     return nearest_color
 
 
-def detect_color(ls_of_rects, color_center, hsv_img):
+def detect_color(ls_of_rects, color_center, img):
     '''
     '''
-    # fig = pyplot.figure()
-    # ax = Axes3D(fig)
     # color_ls = ['red', 'green', 'blue', 'yellow', 'black']
     for idx, rect in enumerate(ls_of_rects):
-        rect_img = hsv_img[rect[0][1]-10:rect[0][1]+10, rect[0][0]-10:rect[0][0]+10]
+        rect_img = img[rect[0][1]-10:rect[0][1]+10, rect[0][0]-10:rect[0][0]+10]
         cv2.imshow("rect", rect_img)
         color_mean = rect_img.mean(axis=0).mean(axis=0).astype(int)
         color_id = get_nearest_color(color_mean, color_center)
-        # ax.scatter(color_mean[0], color_mean[1], color_mean[2], c=color_ls[color_id])
-        # print(color_ls[color_id])
-        
-        rect.append(color_id)
 
-    # pyplot.show(1)
+        rect.append(color_id)
 
 
 def detect_pair_closed_parallel_lines(cluster, ls_of_cen_dir_len):

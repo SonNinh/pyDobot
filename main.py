@@ -7,7 +7,7 @@ import DobotDllType as dType
 # khoang cach gioi han nho nhat giua 2 vat the
 ref_new = 10
 # khoang cach tu tam camera den truc x cua robot
-d_robot_cam = 332
+d_robot_cam = 330
 # toc do bang tai (mm/s)
 mm_per_sec = 40
 # flag dieu khien ket thuc thread 'arm'
@@ -64,7 +64,7 @@ def convert_base(ls_of_rects, img_shape, delta_s):
 
 def get_color_center():
     '''
-    tinh sample color cua 4 mau
+    tinh sample color cua 5 mau
     '''
     color_ls = ['red', 'green', 'blue', 'yellow', 'black']
     color_center = []
@@ -75,7 +75,8 @@ def get_color_center():
         # chuyen doi tu dinh dang numpy sang dinh dang list
         color_center.append(list(p))
 
-    return color_center
+    return color_center 
+    [   [x0, y0, z0],       [], [], ...]
 
 
 def main(threadname):
@@ -116,7 +117,7 @@ def main(threadname):
         color = [(255, 0, 255), (255, 0, 0), (0, 0, 255)]
         for rect in ls_of_rects:
             cv2.circle(img, rect[0], 2, color[0], thickness=1)
-            cv2.putText(img,str(int(rect[2])), rect[0], cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0,255,0),1,cv2.LINE_AA)
+            cv2.putText(img,str(int(rect[1])), rect[0], cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0,255,0),1,cv2.LINE_AA)
         cv2.circle(img, (img.shape[1]//2, img.shape[0]//2), 2, color[2], thickness=1)
         cv2.imshow('origin', img)
 
@@ -234,7 +235,7 @@ def arm(threadname):
     state = dType.ConnectDobot(api, "", 115200)[0]
     print("Connect status:",CON_STR[state])
 
-    # dType.SetHOMEParams(api, 200, 0, 50, 0, isQueued=1)
+    dType.SetHOMEParams(api, 230, 0, 50, 0, isQueued=1)
     dType.SetPTPCoordinateParams(api, 150, 200, 200, 200, isQueued=1)
     dType.SetPTPCommonParams(api, 100, 100, isQueued=1)
     dType.SetPTPJumpParams(api, 60, 150, isQueued=1)
