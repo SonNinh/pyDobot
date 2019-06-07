@@ -394,6 +394,5 @@ def detect_rects(img, color_center):
 
     return ls_of_real_rects
         
-
 # if __name__ == '__main__':
 #     detect_rects()

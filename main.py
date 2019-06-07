@@ -6,12 +6,16 @@ import DobotDllType as dType
 
 # khoang cach gioi han nho nhat giua 2 vat the
 ref_new = 10
+
 # khoang cach tu tam camera den truc x cua robot
-d_robot_cam = 330
+d_robot_cam = 330.5
+
 # toc do bang tai (mm/s)
 mm_per_sec = 40
+
 # flag dieu khien ket thuc thread 'arm'
-end_thread =False
+end_thread = False
+
 # list cac vat the dang duoc theo doi
 ls_obj = []
 
@@ -82,9 +86,11 @@ def get_color_center():
 def main(threadname):
     # mo camera so 0
     cap = cv2.VideoCapture(0)
+
     # setup ty le khung hinh
     cap.set(3, 320)
     cap.set(4, 240)
+
     # setup FPS
     cap.set(5, 30)
     sleep(1)
@@ -123,6 +129,7 @@ def main(threadname):
 
         # convert coordinate base from image base to robot base 
         delta_s = (time()-start_time) * mm_per_sec
+
         # print('time1:', time()-start_time)
         convert_base(ls_of_rects, img.shape, delta_s)
 
@@ -260,8 +267,10 @@ def arm(threadname):
     # STEP_PER_CIRCLE = 17400 #16625 
     # chu vi truc quay bang chuyen
     MM_PER_CIRCLE = 3.1415926535898 * 36.0
+
     # so buoc trong 1 giay
     pulse_per_sec = mm_per_sec * STEP_PER_CIRCLE / MM_PER_CIRCLE
+    
     # dieu khien stepper
     dType.SetEMotor(api, 0, 1, int(pulse_per_sec), isQueued=1)
 
