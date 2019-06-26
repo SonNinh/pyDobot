@@ -295,8 +295,10 @@ def arm(threadname):
                             # xoa vat the vua gap
                             ls_obj.pop(0)
                         else:
+                            end_thread = True
                             break
                     except Exception:
+                        dType.SetEMotor(api, 0, 1, int(0), isQueued=1)
                         break
                 
                 # bang chuyen tiep tuc chay
