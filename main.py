@@ -312,8 +312,6 @@ def arm(threadname):
         mm_per_sec = 40
         pulse_per_sec = mm_per_sec * STEP_PER_CIRCLE / MM_PER_CIRCLE
         dType.SetEMotor(api, 0, 1, int(pulse_per_sec), isQueued=1)
-                
-        for sub in cur_pos_wh:
             
         if end_thread:
             dType.SetEMotor(api, 0, 1, 0, isQueued=1)
