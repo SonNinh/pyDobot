@@ -291,14 +291,14 @@ def arm(threadname):
                                 mm_per_sec = 0
                                 # gap vat the tu bang chuyen vao kho
                                 pick_up(api, ls_obj[0].location, ls_obj[0].orientation, ls_obj[0].color, cur_pos_wh, size_wh)
-
+                            else:
+                                end_thread = True
+                                break
                             # xoa vat the vua gap
                             ls_obj.pop(0)
                         else:
-                            end_thread = True
                             break
                     except Exception:
-                        dType.SetEMotor(api, 0, 1, int(0), isQueued=1)
                         break
                 
                 # bang chuyen tiep tuc chay
@@ -313,7 +313,8 @@ def arm(threadname):
         pulse_per_sec = mm_per_sec * STEP_PER_CIRCLE / MM_PER_CIRCLE
         dType.SetEMotor(api, 0, 1, int(pulse_per_sec), isQueued=1)
                 
-
+        for sub in cur_pos_wh:
+            
         if end_thread:
             dType.SetEMotor(api, 0, 1, 0, isQueued=1)
             print('End process')
